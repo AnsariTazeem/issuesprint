@@ -8,7 +8,7 @@
  * - Development (NODE_ENV=development): STDIO only
  * - Production (NODE_ENV=production): Dual transport (STDIO + HTTP SSE)
  */
-
+import 'reflect-metadata'; //Must be first
 import 'dotenv/config';
 import { McpApplicationFactory } from '@nitrostack/core';
 import { AppModule } from './app.module.js';
