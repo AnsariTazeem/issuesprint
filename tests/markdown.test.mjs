@@ -13,8 +13,24 @@ await build({
     contents: `import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import RepositoryMarkdown, { resolveContentUrl } from './components/repository-markdown';
-import IssueResults from './components/issue-results';
+import IssueResults, { IssueOverview } from './components/issue-results';
+import ContributionEvidence from './components/contribution-evidence';
+import { contributionPreview } from './components/contribution-preview';
 export { resolveContentUrl };
+export function renderOverview() {
+  const context = contributionPreview(102);
+  return renderToStaticMarkup(React.createElement(IssueOverview, { issue: context.issue, repository: context.repository, source: context.source }));
+}
+export function renderEvidence(partial = false) {
+  const context = contributionPreview(102);
+  if (partial) {
+    context.activity = { ...context.activity, status: 'partial', timeline_complete: false };
+    context.contribution_policy = { ...context.contribution_policy, status: 'conflicting-signals' };
+  }
+  return renderToStaticMarkup(React.createElement(ContributionEvidence, {
+    activity: context.activity, policy: context.contribution_policy, recommendation: context.recommendation
+  }));
+}
 export function renderPreview() { return renderToStaticMarkup(React.createElement(IssueResults, { browserPreview: true })); }
 export function render(text, baseUrl) { return renderToStaticMarkup(React.createElement(RepositoryMarkdown, { text, baseUrl })); }`,
     resolveDir: resolve('src/widgets'), loader: 'tsx',
@@ -22,7 +38,7 @@ export function render(text, baseUrl) { return renderToStaticMarkup(React.create
   bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic',
   outfile: bundle, logLevel: 'silent',
 });
-const { render, resolveContentUrl, renderPreview } = createRequire(import.meta.url)(bundle);
+const { render, resolveContentUrl, renderPreview, renderEvidence, renderOverview } = createRequire(import.meta.url)(bundle);
 after(() => rm(directory, { recursive: true, force: true }));
 const source = 'https://github.com/example/repo/blob/main/docs/README.md';
 
@@ -73,4 +89,29 @@ test('browser preview emits literal static CSS without escaped hydration differe
   assert.ok(style);
   assert.ok(style.includes('.repository-markdown>:first-child'));
   assert.doesNotMatch(style, /&gt;|&lt;/);
+});
+
+test('incomplete checks and conflicting guidance remain visible', () => {
+  const html = renderEvidence(true);
+  const visible = html.replace(/<details[\s\S]*?<\/details>/g, '');
+  assert.match(visible, /Checks are incomplete/);
+  assert.match(visible, /Contribution instructions conflict/);
+  assert.match(visible, /Changes requested/);
+  assert.match(visible, /Fix issue-filter keyboard navigation/);
+});
+
+test('supporting sources remain available without exposing internal status names', () => {
+  const html = renderEvidence();
+  assert.doesNotMatch(html, /<details|<summary/);
+  assert.match(html, /Please preserve focus/);
+  assert.match(html, /You may submit a pull request directly/);
+  assert.doesNotMatch(html, /changes-requested-observed|direct-pr-mentioned|not-required-mentioned/);
+});
+
+test('the issue overview shows the full description without an expansion control', () => {
+  const html = renderOverview();
+  assert.match(html, /The filter dropdown cannot be reached reliably by keyboard/);
+  assert.match(html, /read its review feedback before starting another implementation/);
+  assert.match(html, /Issue properties/);
+  assert.doesNotMatch(html, /<details|<summary/);
 });
