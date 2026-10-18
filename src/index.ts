@@ -1,29 +1,15 @@
-/**
- * Calculator MCP Server
- * 
- * Main entry point for the MCP server.
- * Uses the @McpApp decorator pattern for clean, NestJS-style architecture.
- * 
- * Transport Configuration:
- * - Development (NODE_ENV=development): STDIO only
- * - Production (NODE_ENV=production): Dual transport (STDIO + HTTP SSE)
- */
-import 'reflect-metadata'; //Must be first
+import 'reflect-metadata';
 import 'dotenv/config';
 import { McpApplicationFactory } from '@nitrostack/core';
 import { AppModule } from './app.module.js';
 
-/**
- * Bootstrap the application
- */
+/** Start the MCP server. The framework reads transport settings from the environment. */
 async function bootstrap() {
-  // Create and start the MCP server
   const server = await McpApplicationFactory.create(AppModule);
   await server.start();
 }
 
-// Start the application
-bootstrap().catch((error) => {
-  console.error('❌ Failed to start server:', error);
+bootstrap().catch((error: unknown) => {
+  console.error('IssueSprint failed to start:', error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
