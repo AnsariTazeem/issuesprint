@@ -11,7 +11,11 @@
     "start:prod": "nitrostack-cli start",
     "upgrade": "nitrostack-cli upgrade",
     "install:all": "nitrostack-cli install",
-    "widget": "npm --prefix src/widgets"
+    "widget": "npm --prefix src/widgets",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/widgets/tsconfig.json",
+    "test": "tsc && node --test --test-force-exit tests/*.test.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:http": "node scripts/smoke-http.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.0.0",
@@ -21,8 +25,10 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@nitrostack/cli": "^1",
     "@types/node": "^22.10.0",
+    "esbuild": "^0.25.12",
     "typescript": "^5.3.3"
   },
   "author": "dell",

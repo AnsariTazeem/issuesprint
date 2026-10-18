@@ -12,7 +12,7 @@ export class CalculatorTools {
       b: z.number().describe('Second number')
     }),
     examples: {
-      request: {
+      request: { 
         operation: 'add',
         a: 5,
         b: 3
