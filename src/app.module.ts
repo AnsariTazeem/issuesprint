@@ -1,5 +1,5 @@
 import { McpApp, Module, ConfigModule } from '@nitrostack/core';
-import { CalculatorModule } from './modules/calculator/calculator.module.js';
+import { IssuesModule } from './modules/issues/issues.module.js';
 import { SystemHealthCheck } from './health/system.health.js';
 
 /**
@@ -12,18 +12,19 @@ import { SystemHealthCheck } from './health/system.health.js';
   module: AppModule,
   server: {
     name: 'issuesprint',
-    version: '1.0.0'
+    version: '1.0.0',
+    protocolVersion: 'auto',  // 'auto (default: 2026-07-28 + legacy fallback)' | '2026-07-28' | 'legacy'
   },
   logging: {
-    level: 'info'
-  }
+    level: 'info', // 'debug' | 'info' | 'warn' | 'error'
+  },
 })
 @Module({
   name: 'app',
   description: 'Root application module',
   imports: [
     ConfigModule.forRoot(),
-    CalculatorModule
+    IssuesModule
   ],
   providers: [
     // Health Checks
