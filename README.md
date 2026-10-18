@@ -34,7 +34,7 @@ TypeScript, Node.js, NitroStack, Zod, React/Next.js widgets, NitroStudio, and Gi
 
 ## Local setup
 
-Use Node.js 22 and npm 9 or later. The project was developed in WSL Ubuntu.
+Use Node.js 20.20+ within Node 20, or Node.js 22.22+, and npm 9 or later. Node 20.20.0 is verified for the cloud runtime; development also works in WSL Ubuntu on Node 22.22.3.
 
 ```bash
 npm ci
@@ -165,9 +165,11 @@ Plan files use generated UUID filenames, are never overwritten, and are excluded
 1. Run the checks above and confirm local tools work.
 2. Configure NitroCloud through its dashboard or supported deployment workflow. Keep credentials in deployment secret settings.
 3. Set `NODE_ENV=production`, `MCP_TRANSPORT_TYPE=http`, `HOST=0.0.0.0`, and the platform-assigned `PORT`. The application defaults to `legacy` protocol mode, verified with standard MCP SDK v1 clients. Set `NITRO_MCP_PROTOCOL_VERSION=legacy` if you provide an explicit environment override.
-4. Build with `npm run build`; run the compiled server with `npm run start:prod`.
+4. Install root and widget build dependencies and build with `npm run build:cloud`; start the compiled server with `npm run start:prod`. Startup preserves the platform-assigned PORT.
 5. Test the hosted MCP endpoint at `/mcp` with a compatible client.
 6. Re-run the offline workflow against the deployed server, then capture a short end-to-end demo.
+
+See [NitroCloud deployment](docs/deployment.md) for upload steps and exact settings. Create a source archive with `npm run pack:deployment`.
 
 A ZIP upload should exclude `node_modules`, widget dependencies, caches, `.git`, real `.env` files, and saved plans. Check the platform's size limit.
 

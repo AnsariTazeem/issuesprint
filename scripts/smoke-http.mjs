@@ -9,7 +9,8 @@ const probe = createServer();
 await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
 const port = probe.address().port;
 await new Promise(resolve => probe.close(resolve));
-const child = spawn(process.execPath, ['dist/index.js'], {
+const child = spawn('npm', ['run', 'start:prod'], {
+  detached: process.platform !== 'win32',
   cwd: process.cwd(),
   env: { ...process.env, NODE_ENV: 'production', MCP_TRANSPORT_TYPE: 'http', PORT: String(port), HOST: '127.0.0.1', ISSUESPRINT_ALLOW_SAVE: 'false' },
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -35,15 +36,17 @@ try {
   assert.notEqual(result.isError, true);
   const data = result.structuredContent ?? JSON.parse(result.content.find(item => item.type === 'text').text);
   assert.equal(data.issues[0].number, 101);
-  console.log('PASS: production HTTP startup, MCP discovery, and issue-list execution.');
+  console.log('PASS: production start script honors PORT; HTTP discovery and issue-list execution succeed.');
 } catch (error) {
   console.error(errors);
   throw error;
 } finally {
   await client.close();
   if (child.exitCode === null) {
-    child.kill('SIGTERM');
+    if (process.platform === 'win32') child.kill('SIGTERM');
+    else { try { process.kill(-child.pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') throw error; } }
     await Promise.race([new Promise(resolve => child.once('exit', resolve)), delay(2000)]);
-    if (child.exitCode === null) child.kill('SIGKILL');
+    if (process.platform === 'win32') { if (child.exitCode === null) child.kill('SIGKILL'); }
+    else { try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; } }
   }
 }

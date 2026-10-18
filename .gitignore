@@ -58,3 +58,6 @@ tokens.json
 
 # Generated work plans
 /data/
+
+# Generated deployment archive
+/issuesprint-deployment.zip
