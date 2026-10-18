@@ -2,47 +2,67 @@
   "version": "1.0.0",
   "widgets": [
     {
-      "uri": "/calculator-result",
-      "name": "Calculator Result",
-      "description": "Displays the result of a calculation with operation details",
+      "uri": "/issue-results",
+      "name": "IssueSprint contribution workspace",
+      "description": "Ranked issues, contribution context, and approved Markdown work plans",
       "examples": [
         {
-          "name": "Addition Example",
-          "description": "Shows the result of adding 5 + 3",
+          "name": "Offline issue discovery",
+          "description": "Fictional TypeScript contribution preview",
           "data": {
-            "operation": "add",
-            "a": 5,
-            "b": 3,
-            "result": 8,
-            "expression": "5 + 3 = 8"
-          }
-        },
-        {
-          "name": "Multiplication Example",
-          "description": "Shows the result of multiplying 6 × 7",
-          "data": {
-            "operation": "multiply",
-            "a": 6,
-            "b": 7,
-            "result": 42,
-            "expression": "6 × 7 = 42"
-          }
-        },
-        {
-          "name": "Division Example",
-          "description": "Shows the result of dividing 20 ÷ 4",
-          "data": {
-            "operation": "divide",
-            "a": 20,
-            "b": 4,
-            "result": 5,
-            "expression": "20 ÷ 4 = 5"
+            "kind": "issue-list",
+            "source": "demo",
+            "repository": {
+              "owner": "issuesprint-demo",
+              "repo": "demo-repo"
+            },
+            "filters": {
+              "skills": [
+                "TypeScript"
+              ],
+              "available_minutes": 90
+            },
+            "issues": [
+              {
+                "number": 101,
+                "title": "Document TypeScript setup for new contributors",
+                "body": "Add a contributor quick start and verify its documented commands.",
+                "labels": [
+                  "good first issue",
+                  "documentation",
+                  "TypeScript"
+                ],
+                "url": "",
+                "assignees": [],
+                "estimated_minutes": {
+                  "min": 30,
+                  "max": 90
+                },
+                "budget_fit": "likely-within-budget",
+                "reasons": [
+                  "Keyword matches: TypeScript, documentation.",
+                  "A beginner label is one signal, not an availability guarantee.",
+                  "No assignee is listed. This does not prove nobody is working on the issue."
+                ],
+                "availability": {
+                  "status": "unchecked"
+                }
+              }
+            ],
+            "matching_count": 1,
+            "scanned_entries": 6,
+            "notices": [
+              "Fictional offline demo data."
+            ]
           }
         }
       ],
-      "tags": ["calculator", "math", "result"]
+      "tags": [
+        "github",
+        "issues",
+        "contributions",
+        "planning"
+      ]
     }
-  ],
-  "generatedAt": "2025-01-01T00:00:00.000Z"
+  ]
 }
-
