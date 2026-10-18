@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { IssuesService } from '../dist/modules/issues/issues.service.js';
@@ -118,4 +118,22 @@ test('missing contribution files are reported and README base64 is decoded', asy
     assert.equal(result.documents.contributing.found, false);
     assert.ok(result.notices.some(notice => notice.includes('No CONTRIBUTING')));
   } finally { globalThis.fetch = original; }
+});
+
+test('production plan storage defaults to the writable OS temporary directory', async () => {
+  const result = await service({ NODE_ENV: 'production' }).saveWorkPlan(plan);
+  const filename = join(tmpdir(), 'issuesprint', 'plans', result.filename);
+  try { assert.equal(await readFile(filename, 'utf8'), result.markdown); }
+  finally { await rm(filename, { force: true }); }
+});
+
+test('an unwritable explicit directory returns an actionable storage error', { skip: process.platform === 'win32' }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'issuesprint-readonly-'));
+  try {
+    await chmod(directory, 0o500);
+    await assert.rejects(
+      service({ ISSUESPRINT_PLAN_DIR: join(directory, 'plans') }).saveWorkPlan(plan),
+      /Plan storage is not writable.*ISSUESPRINT_PLAN_DIR/
+    );
+  } finally { await chmod(directory, 0o700); await rm(directory, { recursive: true, force: true }); }
 });

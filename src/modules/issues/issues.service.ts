@@ -2,6 +2,7 @@ import { ConfigService, Injectable } from '@nitrostack/core';
 import { mkdir, writeFile, realpath, readdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import { z } from '@nitrostack/core';
 import { DEMO_OWNER, DEMO_REPO, demoIssues, demoReadme, demoContributing, demoActivity } from './issues.demo.js';
 import { listIssuesSchema, issueReferenceSchema, savePlanSchema } from './issues.schemas.js';
@@ -288,14 +289,24 @@ export class IssuesService {
       'Follow applicable repository contribution instructions, recheck existing-work evidence, and coordinate with existing contributors when appropriate. This plan does not reserve or claim the issue.',
       'The time budget is a constraint, not an effort guarantee. Steps and checks are proposed; no code changes or tests have been performed by saving this plan.', '',
     ].join('\n');
-    const directory = resolve(this.config.get('ISSUESPRINT_PLAN_DIR', './data/plans'));
-    await mkdir(directory, { recursive: true, mode: 0o700 });
-    const resolvedDirectory = await realpath(directory);
-    const storedPlans = (await readdir(resolvedDirectory)).filter(name => /^plan-[0-9a-f-]+\.md$/.test(name));
-    if (storedPlans.length >= 200) throw new Error('Plan storage is full (200 plans). Archive existing plans before saving more.');
+    const production = this.config.get('NODE_ENV', process.env.NODE_ENV || 'development') === 'production';
+    const defaultDirectory = production ? join(tmpdir(), 'issuesprint', 'plans') : './data/plans';
+    const directory = resolve(this.config.get('ISSUESPRINT_PLAN_DIR', defaultDirectory));
     const filename = 'plan-' + id + '.md';
-    if (signal?.aborted) throw new Error('Plan save cancelled.');
-    await writeFile(join(resolvedDirectory, filename), markdown, { flag: 'wx', mode: 0o600 });
+    try {
+      await mkdir(directory, { recursive: true, mode: 0o700 });
+      const resolvedDirectory = await realpath(directory);
+      const storedPlans = (await readdir(resolvedDirectory)).filter(name => /^plan-[0-9a-f-]+\.md$/.test(name));
+      if (storedPlans.length >= 200) throw new Error('Plan storage is full (200 plans). Archive existing plans before saving more.');
+      if (signal?.aborted) throw new Error('Plan save cancelled.');
+      await writeFile(join(resolvedDirectory, filename), markdown, { flag: 'wx', mode: 0o600 });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'EACCES' || code === 'EPERM' || code === 'EROFS') {
+        throw new Error('Plan storage is not writable. Configure ISSUESPRINT_PLAN_DIR to a writable directory, such as /tmp/issuesprint/plans, or a mounted persistent volume.');
+      }
+      throw error;
+    }
     return {
       kind: 'work-plan', source: demo ? 'demo' : 'github', id, filename, created_at: created,
       issue: { number: issue.number, title: issue.title, url: issue.url },

@@ -37,7 +37,7 @@ MCP_TRANSPORT_TYPE=http
 HOST=0.0.0.0
 NITRO_MCP_PROTOCOL_VERSION=legacy
 ISSUESPRINT_ALLOW_SAVE=true
-ISSUESPRINT_PLAN_DIR=./data/plans
+ISSUESPRINT_PLAN_DIR=/tmp/issuesprint/plans
 ```
 
 Use the platform's assigned PORT; do not overwrite it with an arbitrary value. If a port field is mandatory and none is assigned, use its documented internal port and configure PORT to match.

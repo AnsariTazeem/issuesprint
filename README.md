@@ -151,7 +151,7 @@ The test runner uses `--test-force-exit` because the installed SDK creates a ref
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `GITHUB_TOKEN` | empty | Optional server-side credential for public GitHub reads |
-| `ISSUESPRINT_PLAN_DIR` | `./data/plans` | Dedicated server-side plan directory |
+| `ISSUESPRINT_PLAN_DIR` | local: `./data/plans`; production: OS temp directory + `/issuesprint/plans` | Dedicated server-side plan directory |
 | `ISSUESPRINT_ALLOW_SAVE` | `true` | Set to `false` to disable filesystem writes |
 | `NITRO_MCP_PROTOCOL_VERSION` | application: `legacy` | Documented compatibility mode; environment overrides the app setting |
 | `MCP_TRANSPORT_TYPE` | framework default | `stdio`, `http`, or `dual` |
