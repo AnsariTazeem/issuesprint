@@ -1,79 +1,137 @@
 # IssueSprint
 
-**Choose a contribution you can actually start.**
+### Find a contribution. Understand the context. Plan your next step.
 
-IssueSprint reimagines GitHub issue discovery as an MCP workflow: combine a developer's skills and time budget with open issues and repository contribution instructions, then save an approved work plan.
+IssueSprint helps developers turn a public GitHub issue into an informed contribution plan. Tell it your skills, available time, and target repository. It finds candidates, checks existing work and contribution requirements, and helps you decide whether to implement, help an existing PR, or coordinate first.
 
-## The problem
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Finding an approachable issue often means switching between issue lists, labels, assignees, README files, and contribution guidelines. A label alone does not establish skill fit, scope, availability, or permission. Existing PRs, contributor discussion, and repository-specific processes matter too.
+**[Try the live assistant](https://nitrochat-issuesprint-assistant-6ad4f303-team-apex-oss-connect.app.nitrocloud.ai)** · **[Source code](https://github.com/AnsariTazeem/issuesprint)** · **[Deployment guide](docs/deployment.md)**
 
-## The workflow
+Built with TypeScript and NitroStack. Deployed on NitroCloud and tested through NitroChat and NitroStudio.
 
-1. **Discover:** `list_issues` lists open issues, excludes pull requests, includes unlabeled and assigned candidates by default, offers optional filters, and explains content/keyword signals. Discovery does not establish availability.
-2. **Inspect:** `get_contribution_context` reads the selected issue, referenced PR/review activity, discussion claims, README, contribution instructions, and templates. It returns evidence, coverage limits, and a suggested contribution strategy.
-3. **Plan:** after user approval, `save_work_plan` refreshes contribution context, chooses implementation, existing-PR review, or coordination, writes an immutable Markdown plan, and returns its complete contents.
+## Why IssueSprint?
 
-The AI lives in the MCP client, not in this server. A client discovers the tool schemas and coordinates the workflow. Each tool also works through NitroStudio's manual executor without model tokens.
+Finding an issue is only the beginning. Before contributing, you still need to answer:
 
-**Status:** locally implemented and testable. A hosted URL and demo video must be supplied separately; neither is claimed here.
+- Does this match my skills and the time I have?
+- Has someone already opened a PR or said they are working on it?
+- Does this repository expect assignment, discussion, or a direct PR?
+- What should I do first, and how will I verify the result?
 
-## Tools
+Those answers are often scattered across issue descriptions, comments, PRs, README files, and contributor guides. A good-first-issue label is useful, but it does not establish availability. A missing beginner label does not rule out a useful contribution.
 
-| Tool | Main inputs | Output |
-| --- | --- | --- |
-| `list_issues` | `owner`, `repo`, optional `skills`, `available_minutes`, `limit`, `beginner_only`, `unassigned_only` | Ranked issues, reasons, estimates, source and scan limits |
-| `get_contribution_context` | `owner`, `repo`, `issue_number` | Issue body and bounded excerpts of repository documents |
-| `save_work_plan` | Issue reference, time budget, summary, steps, acceptance checks | Saved filename, complete Markdown, storage notice |
+IssueSprint brings that context into one MCP workflow, with source links and an explicit next action.
 
-A `plan_contribution` prompt guides the sequence. The `issuesprint://workflow` resource describes tool order, constraints, and demo parameters.
+| Contributor task | How IssueSprint helps |
+| --- | --- |
+| Find work relevant to your skills | Ranks issue candidates using transparent keyword and scope signals |
+| Check whether work is already underway | Inspects referenced PRs, review feedback, assignees, and possible work claims |
+| Understand how the repository accepts contributions | Reads repository guidance and shows the relevant source excerpts |
+| Decide how to contribute | Suggests implementation, reviewing existing work, coordination, or further investigation |
+| Turn research into a first step | Saves an approved Markdown plan with steps, verification checks, and inspected context |
 
-## Stack
+## What makes it useful
 
-TypeScript, Node.js, NitroStack, Zod, React/Next.js widgets, NitroStudio, and GitHub REST API. NitroCloud is the intended deployment platform.
+**Existing work changes the recommendation.** An open issue with an existing PR can become an opportunity to review, reproduce a problem, or help the author. A closed PR prompts a check of the previous outcome before another implementation begins.
 
-## Local setup
+**Repository rules stay repository-specific.** IssueSprint does not impose assignment as a universal requirement. It quotes guidance about direct PRs, discussion, and assignment, preserving conditions and conflicting instructions.
 
-Use Node.js 20.20+ within Node 20, or Node.js 22.22+, and npm 9 or later. Node 20.20.0 is verified for the cloud runtime; development also works in WSL Ubuntu on Node 22.22.3.
+**Unlabeled issues remain discoverable.** Beginner-label and unassigned-only filters are optional and off by default. Help-wanted labels and assignees are signals to interpret in context.
+
+**Time is a constraint, not a promise.** Tentative estimates help screen candidates. Broad or unclear work may have no estimate, and the assistant can say that none of the inspected issues is a good fit.
+
+**Plans are reviewable and portable.** You approve the proposed approach before saving. The server refreshes the context, then returns Markdown containing the plan, source references, and evidence timestamp. You can retain it outside the chat.
+
+## Try it
+
+Open the [live IssueSprint Assistant](https://nitrochat-issuesprint-assistant-6ad4f303-team-apex-oss-connect.app.nitrocloud.ai) and try:
+
+> I know TypeScript and documentation, and have 90 minutes. Find three candidate issues in microsoft/vscode. Check existing PRs and contribution rules before recommending one. Explain your recommendation briefly. Do not save a plan yet.
+
+Then ask for a focused plan for a selected issue. Review its steps and verification checks before approving the save.
+
+The live assistant uses real GitHub data for public repositories. Only the reserved `issuesprint-demo/demo-repo` pair returns clearly labeled fictional fixtures.
+
+### What the workflow looks like
+
+1. **Discover:** describe your skills, time budget, and repository.
+2. **Inspect:** review the issue, related work, and contribution instructions.
+3. **Choose:** decide whether to implement, help an existing PR, or coordinate.
+4. **Approve and save:** retain a focused plan with observable verification checks.
+
+For example, a documentation issue may look approachable and have no assignee. If inspection finds an open PR addressing it, IssueSprint can recommend reviewing that PR before starting a competing implementation.
+
+## Connect your MCP client
+
+**Streamable HTTP endpoint:**
+
+```text
+https://issuesprint-6ad4e570-team-apex-oss-connect.app.nitrocloud.ai/mcp
+```
+
+In NitroStudio, add **Other Project → HTTP (Streamable HTTP)** and use the endpoint above.
+
+The server exposes standard MCP tools, a workflow resource, and a planning prompt. Interactive widgets render in NitroStudio and compatible widget hosts; clients without widget support can still use the tool responses.
+
+| Tool | Purpose |
+| --- | --- |
+| `list_issues` | Find open candidates with skill matches, tentative scope estimates, optional filters, and scan limits |
+| `get_contribution_context` | Inspect issue details, PRs, reviews, possible work claims, and repository contribution guidance |
+| `save_work_plan` | Refresh the evidence and save an approved implementation, existing-PR review, or coordination plan |
+
+The `plan_contribution` prompt guides the sequence. The `issuesprint://workflow` resource documents its rules and demo parameters.
+
+### Why MCP is part of the product
+
+The agent combines several sources of context and performs a bounded action after approval. MCP makes those capabilities discoverable and reusable across compatible clients, rather than tying them to one chat interface.
+
+The client runs the language model and conversation. The server handles input validation, GitHub access, contribution evidence, and plan storage. Each tool also works through NitroStudio's manual executor without an AI conversation.
+
+## Run locally
+
+Requirements: Node.js **20.20+ within Node 20**, or **22.22+**, and npm **9+**. Development and deployment have been verified in WSL Ubuntu and on NitroCloud.
 
 ```bash
-npm ci
-npm --prefix src/widgets ci
-cp .env.example .env
+git clone https://github.com/AnsariTazeem/issuesprint.git
+cd issuesprint
+npm ci --include=dev
+npm ci --prefix src/widgets --include=dev
+cp -n .env.example .env
 npm run build
 ```
 
-Public GitHub reads work without a token, subject to GitHub rate limits. An optional `GITHUB_TOKEN` increases the available API allowance. Store it only in the local environment or deployment secret settings.
+The copy command preserves an existing `.env`. Public GitHub reads work without a token, subject to API limits. An optional server-side `GITHUB_TOKEN` increases the available allowance.
 
-Do not overwrite an existing `.env` when repeating setup.
+### Start a local HTTP server
 
-### Connect NitroStudio on Windows to WSL
-
-Add **Other Project > STDIO** with this command (adjust user and Node version for your machine):
-
-```text
-wsl.exe --cd /home/dell/Projects/NitroStack-Hackathon/issuesprint --exec /home/dell/.nvm/versions/node/v22.22.3/bin/node dist/index.js
+```bash
+NODE_ENV=production MCP_TRANSPORT_TYPE=http HOST=127.0.0.1 PORT=3000 npm start
 ```
 
-Environment: `NODE_ENV=development`, `MCP_TRANSPORT_TYPE=stdio`. The application defaults to the documented `legacy` protocol mode for NitroStudio and standard MCP SDK v1 compatibility. If you set `NITRO_MCP_PROTOCOL_VERSION` explicitly, use `legacy`; an old `auto` value overrides the application default.
+Connect a compatible client to `http://localhost:3000/mcp`. The MCP endpoint is a protocol endpoint, not the browser demo page.
 
-After a server change, rebuild and restart/reconnect the Studio server process. Widget changes also need the root `npm run build` to create self-contained HTML for Studio.
+For STDIO, run the following from the project directory and configure your client to launch the same command with that working directory:
 
-### Browser preview
+```bash
+NODE_ENV=development MCP_TRANSPORT_TYPE=stdio node dist/index.js
+```
+
+Rebuild and reconnect after server changes. Startup runs compiled code and preserves the hosting platform's assigned port.
+
+### Edit the widgets
 
 ```bash
 npm run dev
 ```
 
-Open [localhost:3001](http://localhost:3001). The homepage shows **clearly labeled fictional sample data**. Open `/issue-results?preview=1` for the same sample widget. Browser previews cannot call tools without a connected MCP host. The Studio widget uses real tool results and exposes context and plan-saving actions.
+Open [localhost:3001](http://localhost:3001) for the sample browser preview. It uses labeled fictional data; tool calls and saving require a connected MCP host.
 
-`npm run dev` serves pages for editing; `npm run build` bundles Studio-compatible widget HTML and compiles the MCP server. The widget web server is separate from the STDIO MCP process.
+The preview includes discovery, existing-PR, unlabeled-issue, and work-claim scenarios. Run the root `npm run build` to bundle the widget HTML used by NitroStudio and the hosted server.
 
-## Repeatable offline demo
+## Test without GitHub access
 
-No GitHub token, network requests, or AI calls are needed for manual tool execution.
-
-**1. Find an issue**
+Run `list_issues` through your MCP client with:
 
 ```json
 {
@@ -85,52 +143,24 @@ No GitHub token, network requests, or AI calls are needed for manual tool execut
 }
 ```
 
-Run `list_issues`. Issue **101** should rank first. Fixture URLs are illustrative; this is not a real GitHub repository.
+Inspect issue **102** for an existing PR, **103** for a possible work claim, or **106** for an unlabeled contribution with direct-PR guidance. Propose and approve a plan before saving.
 
-**2. Inspect context**
+Fixture URLs are illustrative. Failed live GitHub requests never silently fall back to demo data.
 
-```json
-{
-  "owner": "issuesprint-demo",
-  "repo": "demo-repo",
-  "issue_number": 101
-}
-```
+## Configuration and deployment
 
-Run `get_contribution_context`, or click **Read contribution context** on the issue card.
+| Variable | Purpose |
+| --- | --- |
+| `GITHUB_TOKEN` | Optional secret for public GitHub API reads |
+| `MCP_TRANSPORT_TYPE` | Select `stdio`, `http`, or `dual` |
+| `HOST` / `PORT` | HTTP listener settings; preserve the platform-assigned port in hosting |
+| `NITRO_MCP_PROTOCOL_VERSION` | Application default: `legacy`, verified with the deployed clients |
+| `ISSUESPRINT_PLAN_DIR` | Optional writable plan directory; local default: `./data/plans`; production default: OS temporary directory plus `/issuesprint/plans` |
+| `ISSUESPRINT_ALLOW_SAVE` | Set to `false` to disable plan storage |
 
-**3. Review and save**
+See [.env.example](.env.example) and the [deployment guide](docs/deployment.md) for complete settings. The cloud build command is `npm run build:cloud`; production startup is `npm run start:prod`. Create a source ZIP with `npm run pack:deployment` when using an upload-based deployment.
 
-```json
-{
-  "owner": "issuesprint-demo",
-  "repo": "demo-repo",
-  "issue_number": 101,
-  "available_minutes": 90,
-  "summary": "Add a concise TypeScript contributor setup guide grounded in the README.",
-  "steps": [
-    "Read the issue acceptance criteria and contribution instructions.",
-    "Document dependency installation, type checking, tests, and build commands from the README.",
-    "Verify the documented commands and review the diff."
-  ],
-  "acceptance_checks": [
-    "A new contributor can follow the setup instructions.",
-    "The documented checks pass when the contributor runs them."
-  ]
-}
-```
-
-Run `save_work_plan` after reviewing the proposed plan. It does not execute these steps or claim the checks have passed.
-
-For AI Chat, try: "I know TypeScript and documentation and have 90 minutes. Find a suitable issue in issuesprint-demo/demo-repo. Read its contribution context and propose a plan. Ask before saving."
-
-## Real GitHub usage
-
-Use an actual public repository instead of the demo pair. Only the exact demo owner/repository selects fixtures. There is no silent fallback from failed live requests to demo data.
-
-Both `beginner_only` and `unassigned_only` default to `false`. Set them to `true` only when you explicitly want labeled-only or unassigned-only discovery. A help-wanted label is not proof that work is beginner friendly, and an assignee is not a universal reservation rule.
-
-Issue cards show **Availability unchecked**. Run contribution context before investing time. The context may recommend implementation under the documented process, inspection/help for an existing PR, coordination, reading previous PR outcomes, or further investigation. These are limited-evidence recommendations, never a guarantee that nobody else is working.
+Plans are stored on the server and returned as complete Markdown. **Keep a copy:** temporary cloud storage can reset on redeployment or scaling. Configure a writable persistent volume when durable storage is needed. Filenames are unique, existing plans are not overwritten, and storage is capped at 200 plans with 10 save requests per minute per process.
 
 ## Verification
 
@@ -142,66 +172,44 @@ npm run smoke
 npm run smoke:http
 ```
 
-Service tests cover input validation, inclusive ranking/filtering, pagination, upstream errors, missing documents, policy conditions/conflicts, PR and review evidence, discussion claims, incomplete coverage, and evidence-aware plan persistence. The smoke test launches a separate MCP server and exercises discovery, the full offline tool chain, error responses, widgets, resources, and prompts. The smoke tests use the application default protocol configuration, without a test-only protocol override. Tests use temporary plan directories and remove their own test files.
+Regression tests cover ranking and filters, validation, GitHub pagination and errors, contribution rules, PR/review evidence, discussion claims, storage permissions, and safe Markdown rendering.
 
-The test runner uses `--test-force-exit` because the installed SDK creates a referenced cleanup interval on import. The smoke test explicitly closes its child transport. A separate HTTP smoke test verifies production transport startup and a real MCP request over localhost.
+Smoke checks exercise the MCP workflow, widget resources, prompts, STDIO, and production HTTP startup. Hosted testing has also verified all three tools against real GitHub data and controlled fixture scenarios, including successful cloud plan saves.
 
-## Storage and configuration
+## Scope and limitations
 
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `GITHUB_TOKEN` | empty | Optional server-side credential for public GitHub reads |
-| `ISSUESPRINT_PLAN_DIR` | local: `./data/plans`; production: OS temp directory + `/issuesprint/plans` | Dedicated server-side plan directory |
-| `ISSUESPRINT_ALLOW_SAVE` | `true` | Set to `false` to disable filesystem writes |
-| `NITRO_MCP_PROTOCOL_VERSION` | application: `legacy` | Documented compatibility mode; environment overrides the app setting |
-| `MCP_TRANSPORT_TYPE` | framework default | `stdio`, `http`, or `dual` |
-| `PORT` | framework default | HTTP listener port |
-| `HOST` | framework default | HTTP interface; use `0.0.0.0` for hosting |
+- **Public github.com repositories only.** Private repositories are not supported.
+- Discovery scans at most **300 recently updated entries**, including PR entries that are excluded from results. It does not search every issue in a large repository.
+- Skill matching and time estimates use heuristics, not semantic source-code analysis.
+- Context inspection is bounded to **200 timeline entries, three referenced PRs, and 200 reviews per PR**. Unlinked, private, off-platform, or unscanned work can be missed.
+- Policy detection uses English text signals and bounded document excerpts. Linked external handbooks are surfaced for review, not automatically read.
+- A reference or review decision does not prove a PR fixes an issue. Code diffs and CI are not inspected.
+- GitHub API limits and upstream availability affect live requests. Evidence can become outdated after inspection.
+- Saving records proposed work. It does not execute commands, verify completed checks, reserve an issue, post comments, or change GitHub.
+- This prototype has no user-account isolation for plan storage. Use it for public contribution plans, not private documents.
 
-Plan files use generated UUID filenames, are never overwritten, and are excluded from Git. Storage is capped at 200 plans, with plan writes limited to 10 per minute per process. Saved plans are **on the server**, not automatically downloaded to the client. Hosted filesystems may be ephemeral; retain the returned Markdown or mount persistent storage. There is no user-account isolation in this hackathon prototype: do not use it as a multi-user private document store.
+## Project structure
 
-## Deployment preparation
+```text
+src/
+  modules/issues/     Tools, schemas, GitHub access, evidence, and planning
+  widgets/            React/Next.js contribution workspace
+  health/             Server health checks
+scripts/              MCP smoke checks
+tests/                Service and rendering regressions
+docs/                 Deployment, evidence model, and demo guides
+```
 
-1. Run the checks above and confirm local tools work.
-2. Configure NitroCloud through its dashboard or supported deployment workflow. Keep credentials in deployment secret settings.
-3. Set `NODE_ENV=production`, `MCP_TRANSPORT_TYPE=http`, `HOST=0.0.0.0`, and the platform-assigned `PORT`. The application defaults to `legacy` protocol mode, verified with standard MCP SDK v1 clients. Set `NITRO_MCP_PROTOCOL_VERSION=legacy` if you provide an explicit environment override.
-4. Install root and widget build dependencies and build with `npm run build:cloud`; start the compiled server with `npm run start:prod`. Startup preserves the platform-assigned PORT.
-5. Test the hosted MCP endpoint at `/mcp` with a compatible client.
-6. Re-run the offline workflow against the deployed server, then capture a short end-to-end demo.
+The original calculator module remains as an unregistered learning reference.
 
-See [NitroCloud deployment](docs/deployment.md) for upload steps and exact settings. Create a source archive with `npm run pack:deployment`.
+## Learn more
 
-A ZIP upload should exclude `node_modules`, widget dependencies, caches, `.git`, real `.env` files, and saved plans. Check the platform's size limit.
+- [Contribution evidence and decision rules](docs/contribution-evidence.md)
+- [Deploying IssueSprint](docs/deployment.md)
+- [Demo recording guide](docs/demo-script.md)
+- [NitroStack documentation](https://docs.nitrostack.ai/sdk/typescript/server)
+- [GitHub REST API documentation](https://docs.github.com/en/rest)
 
-## Limits
+## License
 
-- Public github.com repositories only.
-- At most 300 recently updated issue-endpoint entries are scanned; results are not exhaustive.
-- Skill and scope matching uses content/keyword/label heuristics, not semantic source-code understanding. Missing labels never exclude candidates unless requested.
-- Tentative content/label-based time ranges cannot predict repository complexity. Broad or unknown work may have no time estimate.
-- Documentation excerpts are bounded and may be incomplete. Commands are not inferred or executed by the server.
-- Contribution instructions are checked in common locations, GitHub community-profile metadata, and public owner-level `.github` defaults where readable. Linked external handbooks are surfaced but not automatically fetched. English policy signals require manual interpretation.
-- Issue data can change after retrieval; saving a plan does not assign or reserve an issue.
-- Upstream repository text is untrusted data. The server and prompt explicitly distinguish it from agent instructions.
-- The original calculator source remains as an unregistered learning reference.
-
-## References
-
-- [NitroStack server concepts](https://docs.nitrostack.ai/sdk/typescript/server)
-- [NitroStack tools](https://docs.nitrostack.ai/sdk/typescript/tools)
-- [GitHub issue endpoints](https://docs.github.com/en/rest/issues/issues#list-repository-issues)
-- [GitHub repository contents](https://docs.github.com/en/rest/repos/contents#get-repository-content)
-
-## Availability and contribution-process checks
-
-See [contribution evidence](docs/contribution-evidence.md) for inspected sources, decision rules, limits, and demo scenarios.
-
-- Discovery fits skills; it does not declare an issue free to take.
-- Context inspects up to 200 timeline events, 3 referenced PRs, and 200 reviews per PR. Unlinked/private work and newer events beyond limits may be missed.
-- A PR reference may be incidental. Its relationship to the issue and correctness need human review.
-- Review states and timestamps are shown as evidence. The server does not label code as AI-generated, low quality, or abandoned; CI and diffs are not inspected.
-- Repository guidance is quoted with source links. Conditional wording, conflicts, missing files, failed requests, and truncated excerpts preserve uncertainty.
-- Saving defaults to `strategy: "follow-recommendation"`. An explicit `implementation` choice against a coordination/review recommendation requires a `coordination_note`; this note is user-provided, not proof of maintainer approval.
-- The `review-existing-pr` strategy plans coordination, investigation, or agreed help. It does not authorize editing another contributor branch.
-
-Offline scenarios: issue 102 has an open PR with requested changes; 103 has a possible discussion claim; 104 has closed PR history; 105 is assigned; 106 is an unlabeled documentation candidate. The browser preview has read-only scenario buttons.
+[MIT](LICENSE) © 2026 Tazeem Ansari. Third-party dependencies retain their respective licenses.
