@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme, useWidgetSDK } from '@nitrostack/widgets';
 import RepositoryMarkdown from './repository-markdown';
 import ContributionEvidence from './contribution-evidence';
@@ -54,13 +54,19 @@ const css = `
 
 `;
 
-function unpack(value: unknown): Result {
-  const response = value as { structuredContent?: Result; content?: { type: string; text?: string }[]; isError?: boolean };
-  if (response.isError) throw new Error(response.content?.find(c => c.type === 'text')?.text || 'Tool execution failed.');
-  if (response.structuredContent) return response.structuredContent;
-  const text = response.content?.find(c => c.type === 'text')?.text;
-  if (text) return JSON.parse(text) as Result;
-  return value as Result;
+export function unpackToolResult(value: unknown): Result {
+  const response = value as { structuredContent?: Result; content?: { type: string; text?: string }[]; isError?: boolean } | null;
+  const text = response?.content?.find(c => c.type === 'text')?.text;
+  if (response?.isError) throw new Error(text || 'Tool execution failed.');
+  if (response?.structuredContent?.kind) return response.structuredContent;
+  if (text) {
+    let parsed: Result;
+    try { parsed = JSON.parse(text) as Result; }
+    catch { throw new Error(text); }
+    if (parsed?.kind) return parsed;
+  }
+  if ((value as Result | null)?.kind) return value as Result;
+  throw new Error('The tool did not return a usable result. Try again or check the server logs.');
 }
 
 
@@ -85,6 +91,7 @@ export default function IssueResults({ browserPreview = false }: { browserPrevie
   const sdk = useWidgetSDK();
   const theme = useTheme();
   const hostData = sdk.getToolOutput<Result>();
+  const savedResult = useRef<HTMLElement>(null);
   const [screen, setScreen] = useState<Result | null>(null);
   const [previewMode, setPreviewMode] = useState(browserPreview);
   const [busy, setBusy] = useState(false);
@@ -107,6 +114,12 @@ export default function IssueResults({ browserPreview = false }: { browserPrevie
   const data = screen || (previewMode ? preview : null);
   const connected = sdk.isReady && !previewMode;
   useEffect(() => {
+    if (data?.kind === 'work-plan') {
+      savedResult.current?.scrollIntoView({ block: 'start' });
+      savedResult.current?.focus({ preventScroll: true });
+    }
+  }, [data?.kind, data?.filename]);
+  useEffect(() => {
     if (data?.kind === 'contribution-context') {
       setStrategy('follow-recommendation'); setCoordinationNote(''); setSummary('');
     }
@@ -128,7 +141,7 @@ export default function IssueResults({ browserPreview = false }: { browserPrevie
   async function call(name: string, args: Record<string, unknown>) {
     setBusy(true); setError('');
     try {
-      const next = unpack(await sdk.callTool(name, args));
+      const next = unpackToolResult(await sdk.callTool(name, args));
       if (!next?.kind) throw new Error('The tool returned an unexpected response.');
       setScreen(next);
     } catch (err) { setError(err instanceof Error ? err.message : 'Tool failed.'); }
@@ -148,7 +161,7 @@ export default function IssueResults({ browserPreview = false }: { browserPrevie
       {!data ? <section className="card"><h1>Ready when your tools are.</h1><p className="muted">Run list_issues in NitroStudio to receive repository results. This standalone page has no host tool output.</p><button className="action" onClick={() => setPreviewMode(true)}>Explore sample preview</button></section> : <>
         <div className="eyebrow">{data.repository.owner} / {data.repository.repo}</div>
         {data.kind !== 'contribution-context' && <h1>{data.kind === 'issue-list' ? 'Find your next contribution.' : 'Your plan is saved.'}</h1>}
-        {error && <div role="alert" className="error">{error}</div>}
+        {error && data.kind !== 'contribution-context' && <div role="alert" className="error">{error}</div>}
         {data.kind === 'issue-list' && <>
           <p className="muted">{data.filters?.available_minutes} minute budget · {data.filters?.skills.join(', ') || 'All skills'} · {data.issues?.length || 0} issues shown</p>
           <p className="reason">Availability unchecked. Check PRs and repository rules before starting.</p>
@@ -174,10 +187,12 @@ export default function IssueResults({ browserPreview = false }: { browserPrevie
             <label htmlFor="minutes">Available minutes</label><input id="minutes" type="number" min={15} max={480} value={minutes} onChange={e => setMinutes(Number(e.target.value))} />
             <label htmlFor="steps">Steps, one per line</label><textarea id="steps" value={steps} onChange={e => setSteps(e.target.value)} />
             <label htmlFor="checks">How you will verify it, one check per line</label><textarea id="checks" value={checks} onChange={e => setChecks(e.target.value)} />
+            {error && <p role="alert" className="error">{error}</p>}
+            {busy && <p role="status" className="reason">Checking current activity and saving your plan…</p>}
             <button className="action" style={{ marginTop: 18 }} disabled={!connected || busy || summary.trim().length < 10 || steps.split('\n').filter(v => v.trim()).length < 2 || !checks.trim() || minutes < 15 || minutes > 480 || (strategy === 'implementation' && data.recommendation?.suggested_plan !== 'implementation' && coordinationNote.trim().length < 10)} onClick={() => call('save_work_plan', { ...data.repository, issue_number: data.issue!.number, available_minutes: minutes, strategy, ...(coordinationNote.trim().length >= 10 ? { coordination_note: coordinationNote.trim() } : {}), summary, steps: steps.split('\n').map(v => v.trim()).filter(Boolean), acceptance_checks: checks.split('\n').map(v => v.trim()).filter(Boolean) })}>{busy ? 'Saving…' : 'Save approved plan'}</button>
           </section>
         </>}
-        {data.kind === 'work-plan' && <section className="card"><span className="pill">SAVED · {data.filename}</span><h2>{data.issue?.title}</h2><p className="muted">Keep a copy of this Markdown. Hosted filesystem storage can be temporary.</p><RepositoryMarkdown text={data.markdown || ''} baseUrl={"https://github.com/" + data.repository.owner + "/" + data.repository.repo + "/blob/HEAD/"} /><button className="action secondary" onClick={async () => { try { await navigator.clipboard.writeText(data.markdown || ''); } catch { setError('Clipboard unavailable. Select and copy the Markdown above.'); } }}>Copy Markdown</button></section>}
+        {data.kind === 'work-plan' && <section className="card" ref={savedResult} tabIndex={-1} aria-label="Saved work plan"><span className="pill">SAVED · {data.filename}</span><h2>{data.issue?.title}</h2><p className="muted">Keep a copy of this Markdown. Hosted filesystem storage can be temporary.</p><RepositoryMarkdown text={data.markdown || ''} baseUrl={"https://github.com/" + data.repository.owner + "/" + data.repository.repo + "/blob/HEAD/"} /><button className="action secondary" onClick={async () => { try { await navigator.clipboard.writeText(data.markdown || ''); } catch { setError('Clipboard unavailable. Select and copy the Markdown above.'); } }}>Copy Markdown</button></section>}
         {previewMode && <p className="muted">Sample preview. Connect in NitroStudio to check issues and save plans.</p>}
       </>}
     </div>

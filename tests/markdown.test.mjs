@@ -13,10 +13,10 @@ await build({
     contents: `import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import RepositoryMarkdown, { resolveContentUrl } from './components/repository-markdown';
-import IssueResults, { IssueOverview } from './components/issue-results';
+import IssueResults, { IssueOverview, unpackToolResult } from './components/issue-results';
 import ContributionEvidence from './components/contribution-evidence';
 import { contributionPreview } from './components/contribution-preview';
-export { resolveContentUrl };
+export { resolveContentUrl, unpackToolResult };
 export function renderOverview() {
   const context = contributionPreview(102);
   return renderToStaticMarkup(React.createElement(IssueOverview, { issue: context.issue, repository: context.repository, source: context.source }));
@@ -38,7 +38,7 @@ export function render(text, baseUrl) { return renderToStaticMarkup(React.create
   bundle: true, platform: 'node', format: 'cjs', jsx: 'automatic',
   outfile: bundle, logLevel: 'silent',
 });
-const { render, resolveContentUrl, renderPreview, renderEvidence, renderOverview } = createRequire(import.meta.url)(bundle);
+const { render, resolveContentUrl, renderPreview, renderEvidence, renderOverview, unpackToolResult } = createRequire(import.meta.url)(bundle);
 after(() => rm(directory, { recursive: true, force: true }));
 const source = 'https://github.com/example/repo/blob/main/docs/README.md';
 
@@ -114,4 +114,11 @@ test('the issue overview shows the full description without an expansion control
   assert.match(html, /read its review feedback before starting another implementation/);
   assert.match(html, /Issue properties/);
   assert.doesNotMatch(html, /<details|<summary/);
+});
+
+test('tool errors remain readable instead of becoming JSON parse errors', () => {
+  const message = 'Plan storage is not writable. Configure ISSUESPRINT_PLAN_DIR.';
+  assert.throws(() => unpackToolResult({ content: [{ type: 'text', text: message }] }), { message });
+  assert.throws(() => unpackToolResult({ isError: true, content: [{ type: 'text', text: message }] }), { message });
+  assert.equal(unpackToolResult({ structuredContent: { kind: 'work-plan', saved: true } }).saved, true);
 });
