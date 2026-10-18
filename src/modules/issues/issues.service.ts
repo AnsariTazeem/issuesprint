@@ -144,7 +144,7 @@ export class IssuesService {
         ...(demo ? ['Fictional offline fixtures. Repository and issue URLs are illustrative, not live GitHub records.'] : []),
         ...(capped ? ['Search covers only the 300 most recently updated entries, including pull requests; it is not exhaustive.'] : []),
         ...(matching.length === 0 ? ['No matches within the scanned entries. Try beginner_only=false or unassigned_only=false.'] : []),
-        'Discovery measures tentative skill/scope fit only. Availability is unchecked until contribution context is inspected. Labels and assignments are optional signals, not universal rules.',
+        'Estimates are tentative. Run get_contribution_context to check existing work and repository rules.',
         EXTERNAL_TEXT_NOTICE,
       ],
     };
@@ -245,9 +245,8 @@ export class IssuesService {
         ...(demo ? ['Fictional offline demonstration data.'] : []),
         ...(!contributing.found ? ['No CONTRIBUTING file found in the supported locations or readable owner defaults. Follow the source README and maintainer guidance.'] : []),
         ...(Object.values(documents).some(document => 'error' in document && document.error) ? ['Some repository guidance requests failed. Policy evidence is incomplete.'] : []),
-        'Open and unassigned does not mean available. Review linked PRs and discussion before investing implementation time.',
-        'Do not infer code quality or AI authorship from review status. No code diff or CI analysis is performed.',
-        'Do not invent setup commands or claim that checks were run. Distinguish documented requirements from proposed steps.',
+        'PRs and discussion were checked within the reported limits; unlinked work may still exist. Code diffs and CI were not checked.',
+        'Use documented setup commands and report only checks actually performed.',
         EXTERNAL_TEXT_NOTICE,
       ],
     };

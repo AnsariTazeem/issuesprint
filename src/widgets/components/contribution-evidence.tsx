@@ -4,68 +4,68 @@ import type { ActivityAssessment, ContributionPolicy, Recommendation } from '../
 import RepositoryMarkdown from './repository-markdown';
 
 const isGitHub = (url: string | null | undefined) => Boolean(url && /^https:\/\/github\.com\//.test(url));
-const words = (text: string) => text.replace(/-/g, ' ');
+const date = (value: string) => new Date(value).toLocaleDateString();
+const reviewLabels = { 'changes-requested-observed': 'Changes requested', 'approval-observed': 'Approved', 'no-decision-observed': 'No review decision found', unknown: 'Reviews unavailable' };
+const stateLabels: Record<string, string> = { APPROVED: 'Approved', CHANGES_REQUESTED: 'Changes requested', COMMENTED: 'Commented', DISMISSED: 'Dismissed' };
+const nextSteps: Record<Recommendation['action'], { title: string; text: string }> = {
+  'inspect-existing-pr': { title: 'Review the existing PR first', text: 'Check its scope and feedback before starting another implementation.' },
+  'coordinate-existing-work': { title: 'Coordinate before starting', text: 'Someone may already be working on this issue. Check whether their plans are still current.' },
+  'review-closed-pr-history': { title: 'Check the previous PR outcome', text: 'Read why it closed and confirm what work remains.' },
+  'follow-repository-process': { title: 'Follow the repository’s contribution process', text: 'No competing work was found in the checked activity. Confirm the guidance applies to your change.' },
+  'confirm-before-starting': { title: 'Confirm the contribution process', text: 'Read the repository instructions before starting.' },
+  'investigate-unknown': { title: 'Check the missing information first', text: 'Activity or contribution rules could not be fully confirmed.' },
+  'choose-another-issue': { title: 'Choose an open issue', text: 'This issue is closed. Check with a maintainer if you believe work remains.' },
+};
 
 export default function ContributionEvidence({ activity, policy, recommendation }: {
   activity: ActivityAssessment; policy: ContributionPolicy; recommendation: Recommendation;
 }) {
+  const incomplete = activity.status !== 'inspected' || !activity.timeline_complete || !activity.prs_complete || !policy.documents_complete;
+  const next = nextSteps[recommendation.action];
+  const guidance = policy.evidence.filter((item, index, all) => all.findIndex(other => other.excerpt === item.excerpt && other.document === item.document) === index);
   return <section className="evidence-workspace" aria-label="Contribution availability and repository guidance">
-    <article className="card evidence-recommendation">
-      <div className="row"><span className="eyebrow">Evidence before investment</span><span className="pill">{words(activity.status)} coverage</span></div>
-      <h2>{recommendation.title}</h2>
-      <p>{recommendation.reason}</p>
-      <div className="row"><span className="tag">Suggested plan: {words(recommendation.suggested_plan)}</span><span className="muted">Inspected {new Date(activity.checked_at).toLocaleString()}</span></div>
-      <p className="reason">This is a limited-evidence recommendation, not a reservation or a guarantee that work is available.</p>
+    <article className="next-step">
+      <div><span className="eyebrow">Next step</span><h2>{next.title}</h2><p>{next.text}</p></div>
+      <a className="action" href="#contribution-plan">Prepare a plan ↓</a>
     </article>
+    {incomplete && <p className="note">Checks are incomplete. Missing information does not mean the issue is available.</p>}
+    {policy.status === 'conflicting-signals' && <p className="note">Contribution instructions conflict. Confirm which rule applies before starting.</p>}
 
-    <div className="docs" style={{ marginTop: 16 }}>
+    <div className="context-columns">
       <section className="card">
-        <h2>Existing PR evidence</h2>
-        <p className="muted">{activity.pull_requests.length} inspected of {activity.referenced_prs_found} references found · {activity.timeline_entries_scanned} timeline events scanned</p>
-        {!activity.pull_requests.length && <p className="reason">{activity.status === 'inspected' && activity.prs_complete ? 'No referenced PR was found in the inspected evidence. Unlinked or private work may still exist.' : 'PR evidence is missing or incomplete. Do not interpret this as no existing work.'}</p>}
-        {activity.pull_requests.map(pr => <article className="evidence-item" key={pr.repository + pr.number}>
-          <div className="row"><span className="pill">PR #{pr.number} · {pr.merged ? 'merged' : pr.state}{pr.draft ? ' · draft' : ''}</span><span className="tag">{words(pr.review_status)}</span></div>
-          <h3>{pr.title}</h3>
-          <p className="reason">{pr.repository} · by {pr.author} · updated {new Date(pr.updated_at).toLocaleDateString()}</p>
-          <p className="reason">{pr.relationship === 'closing-reference-in-body' ? 'A closing reference was observed in the PR body; correctness and completeness are not verified.' : 'This PR references the issue. That alone does not establish that it addresses the same scope.'}</p>
-          {isGitHub(pr.url) && <a href={pr.url} target="_blank" rel="noopener noreferrer">Inspect PR on GitHub ↗</a>}
-          {pr.error && <p className="note">Some review data could not be retrieved: {pr.error}</p>}
-          {pr.reviews.length > 0 && <details style={{ marginTop: 12 }}><summary>Review feedback ({pr.reviews.length} excerpts)</summary>{pr.reviews.map((review, i) => <div className="evidence-quote" key={review.url + i}>
-            <p className="reason">{review.author} · {review.association} · {review.state}{review.submitted_at ? ' · ' + new Date(review.submitted_at).toLocaleDateString() : ''}</p>
+        <h2>Related pull requests</h2>
+        {!activity.pull_requests.length && <p className="muted">{activity.status === 'inspected' && activity.prs_complete ? 'No linked PR found. Unlinked work may still exist.' : 'PR activity could not be fully checked.'}</p>}
+        {activity.pull_requests.map(pr => <article className="pr-item" key={pr.repository + pr.number}>
+          <div className="row"><span className="pill">{pr.merged ? 'Merged' : pr.state === 'open' ? 'Open' : 'Closed'}{pr.draft ? ' · Draft' : ''}</span><span className="tag">{reviewLabels[pr.review_status]}</span></div>
+          <h3>{isGitHub(pr.url) ? <a href={pr.url} target="_blank" rel="noopener noreferrer">#{pr.number} {pr.title} ↗</a> : <>#{pr.number} {pr.title}</>}</h3>
+          <p className="reason">{pr.author} · Updated {date(pr.updated_at)}</p>
+          {pr.reviews.slice(-2).map((review, i) => <div className="review-feedback" key={review.url + i}>
+            <p className="reason">{review.author} · {stateLabels[review.state] || 'Review'}{review.submitted_at ? ' · ' + date(review.submitted_at) : ''}{isGitHub(review.url) && <> · <a href={review.url} target="_blank" rel="noopener noreferrer">Source ↗</a></>}</p>
             <RepositoryMarkdown text={review.body || 'No written feedback.'} baseUrl={pr.url} />
-            {isGitHub(review.url) && <a href={review.url} target="_blank" rel="noopener noreferrer">Review source ↗</a>}
-          </div>)}</details>}
-          <p className="reason">Review states are evidence, not an automatic judgment of code quality, AI authorship, or abandonment. CI and code diffs were not inspected.</p>
+          </div>)}
+          {pr.reviews.length > 2 && isGitHub(pr.url) && <a className="reason" href={pr.url} target="_blank" rel="noopener noreferrer">Read all feedback on GitHub ↗</a>}
+          {pr.error && <p className="note">Some review information is unavailable.</p>}
         </article>)}
+        {activity.possible_claims.length > 0 && <section className="work-claims">
+          <h3>Work mentioned in discussion</h3>
+          {activity.possible_claims.slice(0, 3).map((comment, i) => <div className="review-feedback" key={comment.url + i}>
+            <p className="reason">{comment.author}{comment.updated_at ? ' · ' + date(comment.updated_at) : ''}{isGitHub(comment.url) && <> · <a href={comment.url} target="_blank" rel="noopener noreferrer">Discussion ↗</a></>}</p>
+            <RepositoryMarkdown text={comment.body} baseUrl={comment.url} />
+          </div>)}
+          <p className="reason">Confirm whether these comments are still current.</p>
+          {activity.possible_claims.length > 3 && <p className="reason">More work claims were found; review the full issue discussion.</p>}
+        </section>}
       </section>
-
-      <section className="card">
-        <h2>Repository-specific process</h2>
-        <p className="muted">{words(policy.status)} · interpret source excerpts in context</p>
-        <div className="tags"><span className="tag">Assignment: {words(policy.assignment)}</span><span className="tag">PR process: {words(policy.process)}</span></div>
-        {!policy.evidence.length && <p className="reason">No explicit process signals were detected in the inspected text. This does not mean no rules exist. Read the full guidance and linked documents.</p>}
-        {policy.evidence.map((item, i) => <div className="evidence-quote" key={item.document + i}>
-          <p className="reason">{item.document} · {words(item.topic)}{item.conditional ? ' · conditional wording' : ''}</p>
+      <aside className="card">
+        <h2>Contribution requirements</h2>
+        {!guidance.length && <p className="muted">No clear process found. Check CONTRIBUTING or the README before starting.</p>}
+        {guidance.map((item, i) => <div className="guidance-item" key={item.document + i}>
           <blockquote>{item.excerpt}</blockquote>
-          {isGitHub(item.url) && <a href={item.url!} target="_blank" rel="noopener noreferrer">Read guidance source ↗</a>}
+          <p className="reason">{isGitHub(item.url) ? <a href={item.url!} target="_blank" rel="noopener noreferrer">{item.document} ↗</a> : item.document}{item.conditional ? ' · Applies under specific conditions' : ''}</p>
         </div>)}
-        {policy.linked_guides.length > 0 && <details><summary>Linked guides to review</summary><ul>{policy.linked_guides.map(guide => <li key={guide.url}><a href={guide.url} target="_blank" rel="noopener noreferrer">{guide.title} ↗</a></li>)}</ul><p className="reason">These links were discovered, not fetched or fully interpreted.</p></details>}
-      </section>
+        {policy.linked_guides.length > 0 && <div className="source-links">{policy.linked_guides.map(guide => <a href={guide.url} key={guide.url} target="_blank" rel="noopener noreferrer">{guide.title} ↗</a>)}<p className="reason">Additional guides were linked but not checked.</p></div>}
+      </aside>
     </div>
-
-    {activity.possible_claims.length > 0 && <section className="card" style={{ marginTop: 16 }}>
-      <h2>Possible work claims in discussion</h2><p className="muted">These may be old statements or requests, not confirmed ownership. Check the source and coordinate.</p>
-      {activity.possible_claims.map((comment, i) => <div className="evidence-quote" key={comment.url + i}>
-        <p className="reason">{comment.author} · {comment.association} · updated {comment.updated_at ? new Date(comment.updated_at).toLocaleDateString() : 'unknown'}</p>
-        <RepositoryMarkdown text={comment.body} baseUrl={comment.url} />
-        {isGitHub(comment.url) && <a href={comment.url} target="_blank" rel="noopener noreferrer">Discussion source ↗</a>}
-      </div>)}
-    </section>}
-
-    <details className="card" style={{ marginTop: 16 }}><summary>Coverage limits and uncertainty</summary>
-      {[...activity.notices, ...policy.caveats].map((notice, i) => <p className="reason" key={i}>{notice}</p>)}
-      {!activity.timeline_complete && <p className="note">Timeline inspection is incomplete. Later or unread events may change the recommendation.</p>}
-      {!activity.prs_complete && <p className="note">Some referenced PRs or review histories were not fully inspected.</p>}
-    </details>
+    <p className="check-summary">Checked {date(activity.checked_at)}. PR references and reviews do not verify a fix; unlinked work may exist.</p>
   </section>;
 }
